@@ -6,6 +6,8 @@
     <title>内部设备领用登记</title>
     <meta name="color-scheme" content="light" />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="./assets/app.css" />
     <script>
       tailwind.config = {
         theme: {
@@ -38,9 +40,25 @@
             <a href="#" class="text-sm font-medium text-slate-600 hover:text-slate-900 hover:border-b-2 hover:border-slate-900/20 pb-1 transition">管理员入口</a>
           </nav>
 
-          <a href="#" class="sm:hidden inline-flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-700">
-            菜单
-          </a>
+          <div class="flex items-center gap-2">
+            <a
+              href="#"
+              class="sm:hidden inline-flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-700 rounded-lg px-2 py-2"
+            >
+              菜单
+            </a>
+            <span
+              id="currentUserLabel"
+              class="hidden items-center rounded-full bg-slate-100 text-slate-700 ring-1 ring-slate-200 px-2.5 py-1 text-xs font-semibold"
+            ></span>
+            <button
+              id="loginOpenBtn"
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+            >
+              登录1111
+            </button>
+          </div>
         </div>
       </div>
     </header>
@@ -69,7 +87,7 @@
     </main>
 
     <!-- 领用表单弹窗 -->
-    <div id="modalOverlay" class="fixed inset-0 z-50 hidden">
+    <div id="modalOverlay" class="fixed inset-0 z-40 hidden">
       <div class="absolute inset-0 bg-slate-900/50"></div>
       <div class="relative min-h-full flex items-center justify-center p-4">
         <div
@@ -158,163 +176,83 @@
       </div>
     </div>
 
-    <script>
-      const devices = [
-        { id: 'd1', name: '笔记本电脑', model: 'ThinkPad T14', status: '可领用' },
-        { id: 'd2', name: '手机采集设备', model: 'Pixel 8', status: '已领用' },
-        { id: 'd3', name: '无线网卡套件', model: 'AX3000', status: '维修中' },
-        { id: 'd4', name: '摄像机', model: 'Logi C920', status: '可领用' },
-        { id: 'd5', name: '平板电脑', model: 'iPad 10.9', status: '已领用' },
-        { id: 'd6', name: '路由器', model: 'RT-AC86U', status: '可领用' },
-      ];
-
-      const statusMap = {
-        '可领用': { badge: 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200', label: '可领用' },
-        '已领用': { badge: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200', label: '已领用' },
-        '维修中': { badge: 'bg-amber-50 text-amber-800 ring-1 ring-amber-200', label: '维修中' },
-      };
-
-      const deviceGrid = document.getElementById('deviceGrid');
-      const searchInput = document.getElementById('searchInput');
-
-      const modalOverlay = document.getElementById('modalOverlay');
-      const modalCloseBtn = document.getElementById('modalCloseBtn');
-      const modalCancelBtn = document.getElementById('modalCancelBtn');
-      const applyForm = document.getElementById('applyForm');
-
-      const selectedDeviceIdEl = document.getElementById('selectedDeviceId');
-      const deviceSummaryEl = document.getElementById('deviceSummary');
-      const formErrorEl = document.getElementById('formError');
-
-      const applyNameEl = document.getElementById('applyName');
-      const applyDeptEl = document.getElementById('applyDept');
-      const applyDueDateEl = document.getElementById('applyDueDate');
-
-      function setModalOpen(open) {
-        modalOverlay.classList.toggle('hidden', !open);
-        if (open) {
-          // 简单校验：把最小日期设为今天
-          const today = new Date();
-          const yyyy = today.getFullYear();
-          const mm = String(today.getMonth() + 1).padStart(2, '0');
-          const dd = String(today.getDate()).padStart(2, '0');
-          applyDueDateEl.min = `${yyyy}-${mm}-${dd}`;
-
-          formErrorEl.classList.add('hidden');
-          const firstFocusable = modalOverlay.querySelector('button, input, [href]');
-          if (firstFocusable) firstFocusable.focus();
-        }
-      }
-
-      function statusAllowsApply(status) {
-        return status === '可领用';
-      }
-
-      function renderDevices(list) {
-        deviceGrid.innerHTML = '';
-
-        for (const d of list) {
-          const s = statusMap[d.status] || { badge: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200', label: d.status };
-          const canApply = statusAllowsApply(d.status);
-
-          const card = document.createElement('article');
-          card.className =
-            'rounded-2xl bg-white border border-slate-200 shadow-sm p-5 flex flex-col gap-4';
-          card.innerHTML = `
-            <div class="flex items-start justify-between gap-3">
-              <div class="min-w-0">
-                <div class="text-sm text-slate-600">设备名称</div>
-                <div class="font-semibold text-slate-900 truncate">${d.name}</div>
-              </div>
-              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${s.badge} whitespace-nowrap">
-                ${s.label}
-              </span>
-            </div>
-
+    <!-- 登录弹窗 -->
+    <div id="loginOverlay" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-slate-900/50"></div>
+      <div class="relative min-h-full flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="loginTitle"
+          class="w-full max-w-md rounded-2xl bg-white shadow-xl ring-1 ring-slate-900/10 overflow-hidden"
+        >
+          <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
             <div>
-              <div class="text-sm text-slate-600">型号</div>
-              <div class="text-sm font-medium text-slate-900">${d.model}</div>
+              <div id="loginTitle" class="text-base font-semibold">登录</div>
+              <div id="loginHint" class="text-sm text-slate-600 mt-1">输入用户名和密码继续</div>
+            </div>
+            <button
+              id="loginCloseBtn"
+              type="button"
+              class="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              aria-label="关闭"
+            >
+              <span class="text-lg leading-none">&times;</span>
+            </button>
+          </div>
+
+          <form id="loginForm" class="px-5 py-4" autocomplete="off">
+            <div class="space-y-4">
+              <div>
+                <label for="loginUsername" class="block text-sm font-medium text-slate-900">用户名/邮箱</label>
+                <input
+                  id="loginUsername"
+                  name="username"
+                  type="text"
+                  required
+                  placeholder="例如：michael@company.com"
+                  class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/30"
+                />
+              </div>
+
+              <div>
+                <label for="loginPassword" class="block text-sm font-medium text-slate-900">密码</label>
+                <input
+                  id="loginPassword"
+                  name="password"
+                  type="password"
+                  required
+                  placeholder="请输入密码"
+                  class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/30"
+                />
+              </div>
+
+              <div id="loginError" class="hidden text-sm text-red-600">
+                登录失败，请检查账号密码。
+              </div>
             </div>
 
-            <div class="mt-auto flex items-center justify-between gap-3">
-              <div class="text-xs text-slate-500">点击领用填写登记信息</div>
+            <div class="mt-5 flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
               <button
+                id="loginCancelBtn"
                 type="button"
-                ${canApply ? '' : 'disabled'}
-                class="rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
-                  canApply
-                    ? 'bg-slate-900 text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20'
-                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
-                }"
-                data-device-id="${d.id}"
+                class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
               >
-                领用
+                取消
+              </button>
+              <button
+                id="loginSubmitBtn"
+                type="submit"
+                class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              >
+                <span id="loginSubmitText">登录</span>
               </button>
             </div>
-          `;
+          </form>
+        </div>
+      </div>
+    </div>
 
-          const applyBtn = card.querySelector('button[data-device-id]');
-          applyBtn.addEventListener('click', () => openApplyModal(d));
-          deviceGrid.appendChild(card);
-        }
-      }
-
-      function openApplyModal(device) {
-        selectedDeviceIdEl.value = device.id;
-        deviceSummaryEl.textContent = `设备：${device.name}（${device.model}）`;
-        applyNameEl.value = '';
-        applyDeptEl.value = '';
-        applyDueDateEl.value = '';
-        setModalOpen(true);
-      }
-
-      function closeModal() {
-        setModalOpen(false);
-      }
-
-      function getFilteredDevices() {
-        const q = (searchInput.value || '').trim().toLowerCase();
-        if (!q) return devices;
-        return devices.filter((d) => `${d.name} ${d.model}`.toLowerCase().includes(q));
-      }
-
-      searchInput.addEventListener('input', () => renderDevices(getFilteredDevices()));
-
-      modalCloseBtn.addEventListener('click', closeModal);
-      modalCancelBtn.addEventListener('click', closeModal);
-      modalOverlay.addEventListener('click', (e) => {
-        if (e.target === modalOverlay) closeModal();
-      });
-
-      // ESC 关闭
-      document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) closeModal();
-      });
-
-      applyForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-        formErrorEl.classList.add('hidden');
-
-        const name = (applyNameEl.value || '').trim();
-        const dept = (applyDeptEl.value || '').trim();
-        const dueDate = (applyDueDateEl.value || '').trim();
-        const selectedDeviceId = (selectedDeviceIdEl.value || '').trim();
-
-        if (!selectedDeviceId || !name || !dept || !dueDate) {
-          formErrorEl.classList.remove('hidden');
-          return;
-        }
-
-        // 这里是前端演示逻辑：你可以在后续接入后端接口
-        const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
-        const msg = `已提交领用申请：${selectedDevice?.name || ''}（${selectedDevice?.model || ''}）\\n姓名：${name}\\n部门：${dept}\\n预计归还：${dueDate}`;
-        alert(msg);
-
-        closeModal();
-      });
-
-      // 初始化渲染
-      renderDevices(devices);
-    </script>
+    <script type="module" src="./src/main.js"></script>
   </body>
 </html>

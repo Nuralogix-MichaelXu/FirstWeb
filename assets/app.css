@@ -1,0 +1,7 @@
+/* Intentionally minimal: Tailwind via CDN. */
+
+/* Prevent background scroll when any modal is open (optional hook). */
+.no-scroll {
+  overflow: hidden;
+}
+
