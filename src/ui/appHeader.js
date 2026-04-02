@@ -11,7 +11,7 @@ export function initHeaderAuthControls(auth) {
     loginOpenBtn.dataset.authed = authed ? '1' : '0';
 
     if (authed) {
-      const label = getUserLabel(session.user);
+      const label = getUsername(getUserLabel(session.user));
       currentUserLabelEl.textContent = label;
       currentUserLabelEl.classList.remove('hidden');
       currentUserLabelEl.classList.add('inline-flex');
@@ -20,6 +20,11 @@ export function initHeaderAuthControls(auth) {
       currentUserLabelEl.classList.add('hidden');
       currentUserLabelEl.classList.remove('inline-flex');
     }
+  }
+
+  function getUsername(userLabel) {
+    const username = userLabel.replace('@internal.local', '');
+    return username;
   }
 
   auth.onAuthChange(setAuthButtonState);

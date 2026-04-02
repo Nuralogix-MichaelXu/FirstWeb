@@ -81,7 +81,11 @@ export function initAuthModal(auth) {
 
     setLoginLoading(true);
     try {
-      const { data, error } = await auth.signInWithPassword({ email, password });
+      const { data, error } = await auth.signInWithPassword({ 
+        email: `${email}@internal.local`, 
+        password: password 
+      });
+
       if (error || !data?.session) {
         loginErrorEl.textContent = error?.message || '登录失败，请检查账号密码。';
         loginErrorEl.classList.remove('hidden');
