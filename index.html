@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>内部设备领用登记</title>
+    <meta name="color-scheme" content="light" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['ui-sans-serif', 'system-ui', '-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', 'Arial', 'sans-serif'],
+            },
+          },
+        },
+      };
+    </script>
+  </head>
+  <body class="bg-slate-50 text-slate-900">
+    <header class="sticky top-0 z-30 bg-white/80 backdrop-blur border-b border-slate-200">
+      <div class="mx-auto max-w-6xl px-4">
+        <div class="flex items-center justify-between py-3">
+          <div class="flex items-center gap-3">
+            <div class="h-9 w-9 rounded-lg bg-slate-900 text-white grid place-items-center font-semibold">
+              领
+            </div>
+            <div class="leading-tight">
+              <div class="text-sm font-semibold">内部设备管理</div>
+              <div class="text-xs text-slate-600">设备领用登记</div>
+            </div>
+          </div>
+
+          <nav class="hidden sm:flex items-center gap-6" aria-label="顶部导航">
+            <a href="#" class="text-sm font-medium text-slate-900 border-b-2 border-slate-900/90 pb-1">设备领用</a>
+            <a href="#" class="text-sm font-medium text-slate-600 hover:text-slate-900 hover:border-b-2 hover:border-slate-900/20 pb-1 transition">我的申请</a>
+            <a href="#" class="text-sm font-medium text-slate-600 hover:text-slate-900 hover:border-b-2 hover:border-slate-900/20 pb-1 transition">管理员入口</a>
+          </nav>
+
+          <a href="#" class="sm:hidden inline-flex items-center gap-2 text-sm font-semibold text-slate-900 hover:text-slate-700">
+            菜单
+          </a>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-6xl px-4 py-6">
+      <div class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <h1 class="text-xl sm:text-2xl font-semibold">设备列表</h1>
+          <p class="text-sm text-slate-600 mt-1">选择“领用”填写信息并提交登记。</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="relative w-full sm:w-72">
+            <input
+              id="searchInput"
+              type="text"
+              placeholder="搜索设备名称或型号"
+              class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/30"
+            />
+          </div>
+        </div>
+      </div>
+
+      <section class="mt-5">
+        <div id="deviceGrid" class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3"></div>
+      </section>
+    </main>
+
+    <!-- 领用表单弹窗 -->
+    <div id="modalOverlay" class="fixed inset-0 z-50 hidden">
+      <div class="absolute inset-0 bg-slate-900/50"></div>
+      <div class="relative min-h-full flex items-center justify-center p-4">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="modalTitle"
+          class="w-full max-w-lg rounded-2xl bg-white shadow-xl ring-1 ring-slate-900/10 overflow-hidden"
+        >
+          <div class="px-5 py-4 border-b border-slate-200 flex items-start justify-between gap-4">
+            <div>
+              <div id="modalTitle" class="text-base font-semibold">设备领用登记</div>
+              <div id="deviceSummary" class="text-sm text-slate-600 mt-1">选择设备后填写信息</div>
+            </div>
+            <button
+              id="modalCloseBtn"
+              type="button"
+              class="shrink-0 rounded-lg p-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+              aria-label="关闭"
+            >
+              <span class="text-lg leading-none">&times;</span>
+            </button>
+          </div>
+
+          <form id="applyForm" class="px-5 py-4" autocomplete="off">
+            <div class="space-y-4">
+              <input type="hidden" id="selectedDeviceId" />
+
+              <div>
+                <label for="applyName" class="block text-sm font-medium text-slate-900">姓名</label>
+                <input
+                  id="applyName"
+                  name="name"
+                  type="text"
+                  required
+                  placeholder="例如：张三"
+                  class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/30"
+                />
+              </div>
+
+              <div>
+                <label for="applyDept" class="block text-sm font-medium text-slate-900">部门</label>
+                <input
+                  id="applyDept"
+                  name="department"
+                  type="text"
+                  required
+                  placeholder="例如：研发部"
+                  class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/30"
+                />
+              </div>
+
+              <div>
+                <label for="applyDueDate" class="block text-sm font-medium text-slate-900">预计归还日期</label>
+                <input
+                  id="applyDueDate"
+                  name="dueDate"
+                  type="date"
+                  required
+                  class="mt-1 w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-slate-900/10 focus:border-slate-900/30"
+                />
+              </div>
+
+              <div id="formError" class="hidden text-sm text-red-600">
+                请完整填写表单信息。
+              </div>
+            </div>
+
+            <div class="mt-5 flex items-center justify-end gap-3 border-t border-slate-200 pt-4">
+              <button
+                id="modalCancelBtn"
+                type="button"
+                class="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
+              >
+                取消
+              </button>
+              <button
+                id="modalSubmitBtn"
+                type="submit"
+                class="rounded-lg bg-slate-900 px-4 py-2 text-sm font-semibold text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20"
+              >
+                提交领用
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const devices = [
+        { id: 'd1', name: '笔记本电脑', model: 'ThinkPad T14', status: '可领用' },
+        { id: 'd2', name: '手机采集设备', model: 'Pixel 8', status: '已领用' },
+        { id: 'd3', name: '无线网卡套件', model: 'AX3000', status: '维修中' },
+        { id: 'd4', name: '摄像机', model: 'Logi C920', status: '可领用' },
+        { id: 'd5', name: '平板电脑', model: 'iPad 10.9', status: '已领用' },
+        { id: 'd6', name: '路由器', model: 'RT-AC86U', status: '可领用' },
+      ];
+
+      const statusMap = {
+        '可领用': { badge: 'bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200', label: '可领用' },
+        '已领用': { badge: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200', label: '已领用' },
+        '维修中': { badge: 'bg-amber-50 text-amber-800 ring-1 ring-amber-200', label: '维修中' },
+      };
+
+      const deviceGrid = document.getElementById('deviceGrid');
+      const searchInput = document.getElementById('searchInput');
+
+      const modalOverlay = document.getElementById('modalOverlay');
+      const modalCloseBtn = document.getElementById('modalCloseBtn');
+      const modalCancelBtn = document.getElementById('modalCancelBtn');
+      const applyForm = document.getElementById('applyForm');
+
+      const selectedDeviceIdEl = document.getElementById('selectedDeviceId');
+      const deviceSummaryEl = document.getElementById('deviceSummary');
+      const formErrorEl = document.getElementById('formError');
+
+      const applyNameEl = document.getElementById('applyName');
+      const applyDeptEl = document.getElementById('applyDept');
+      const applyDueDateEl = document.getElementById('applyDueDate');
+
+      function setModalOpen(open) {
+        modalOverlay.classList.toggle('hidden', !open);
+        if (open) {
+          // 简单校验：把最小日期设为今天
+          const today = new Date();
+          const yyyy = today.getFullYear();
+          const mm = String(today.getMonth() + 1).padStart(2, '0');
+          const dd = String(today.getDate()).padStart(2, '0');
+          applyDueDateEl.min = `${yyyy}-${mm}-${dd}`;
+
+          formErrorEl.classList.add('hidden');
+          const firstFocusable = modalOverlay.querySelector('button, input, [href]');
+          if (firstFocusable) firstFocusable.focus();
+        }
+      }
+
+      function statusAllowsApply(status) {
+        return status === '可领用';
+      }
+
+      function renderDevices(list) {
+        deviceGrid.innerHTML = '';
+
+        for (const d of list) {
+          const s = statusMap[d.status] || { badge: 'bg-slate-100 text-slate-700 ring-1 ring-slate-200', label: d.status };
+          const canApply = statusAllowsApply(d.status);
+
+          const card = document.createElement('article');
+          card.className =
+            'rounded-2xl bg-white border border-slate-200 shadow-sm p-5 flex flex-col gap-4';
+          card.innerHTML = `
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-sm text-slate-600">设备名称</div>
+                <div class="font-semibold text-slate-900 truncate">${d.name}</div>
+              </div>
+              <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold ${s.badge} whitespace-nowrap">
+                ${s.label}
+              </span>
+            </div>
+
+            <div>
+              <div class="text-sm text-slate-600">型号</div>
+              <div class="text-sm font-medium text-slate-900">${d.model}</div>
+            </div>
+
+            <div class="mt-auto flex items-center justify-between gap-3">
+              <div class="text-xs text-slate-500">点击领用填写登记信息</div>
+              <button
+                type="button"
+                ${canApply ? '' : 'disabled'}
+                class="rounded-lg px-3.5 py-2 text-sm font-semibold transition ${
+                  canApply
+                    ? 'bg-slate-900 text-white hover:bg-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/20'
+                    : 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                }"
+                data-device-id="${d.id}"
+              >
+                领用
+              </button>
+            </div>
+          `;
+
+          const applyBtn = card.querySelector('button[data-device-id]');
+          applyBtn.addEventListener('click', () => openApplyModal(d));
+          deviceGrid.appendChild(card);
+        }
+      }
+
+      function openApplyModal(device) {
+        selectedDeviceIdEl.value = device.id;
+        deviceSummaryEl.textContent = `设备：${device.name}（${device.model}）`;
+        applyNameEl.value = '';
+        applyDeptEl.value = '';
+        applyDueDateEl.value = '';
+        setModalOpen(true);
+      }
+
+      function closeModal() {
+        setModalOpen(false);
+      }
+
+      function getFilteredDevices() {
+        const q = (searchInput.value || '').trim().toLowerCase();
+        if (!q) return devices;
+        return devices.filter((d) => `${d.name} ${d.model}`.toLowerCase().includes(q));
+      }
+
+      searchInput.addEventListener('input', () => renderDevices(getFilteredDevices()));
+
+      modalCloseBtn.addEventListener('click', closeModal);
+      modalCancelBtn.addEventListener('click', closeModal);
+      modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) closeModal();
+      });
+
+      // ESC 关闭
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && !modalOverlay.classList.contains('hidden')) closeModal();
+      });
+
+      applyForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        formErrorEl.classList.add('hidden');
+
+        const name = (applyNameEl.value || '').trim();
+        const dept = (applyDeptEl.value || '').trim();
+        const dueDate = (applyDueDateEl.value || '').trim();
+        const selectedDeviceId = (selectedDeviceIdEl.value || '').trim();
+
+        if (!selectedDeviceId || !name || !dept || !dueDate) {
+          formErrorEl.classList.remove('hidden');
+          return;
+        }
+
+        // 这里是前端演示逻辑：你可以在后续接入后端接口
+        const selectedDevice = devices.find((d) => d.id === selectedDeviceId);
+        const msg = `已提交领用申请：${selectedDevice?.name || ''}（${selectedDevice?.model || ''}）\\n姓名：${name}\\n部门：${dept}\\n预计归还：${dueDate}`;
+        alert(msg);
+
+        closeModal();
+      });
+
+      // 初始化渲染
+      renderDevices(devices);
+    </script>
+  </body>
+</html>
